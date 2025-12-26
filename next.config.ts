@@ -1,40 +1,32 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Turn this OFF. We will handle slashes manually to avoid loops.
+  // We disable this to stop Next.js from messing with Ghost's slashes
   trailingSlash: false,
 
   async rewrites() {
     return [
       {
-        // 1. Ghost Admin - Must be at the top
-        source: '/blog/ghost/:path*',
-        destination: 'https://content.pointblank.club/blog/ghost/:path*',
-      },
-      {
-        // 2. Ghost Assets (CSS/JS)
-        source: '/blog/assets/:path*',
-        destination: 'https://content.pointblank.club/blog/assets/:path*',
-      },
-      {
-        // 3. Blog Home (with trailing slash support)
-        source: '/blog/',
-        destination: 'https://content.pointblank.club/blog/',
-      },
-      {
-        // 4. Everything else under /blog (Posts, Tags, Authors)
-        // This MUST be below the assets/admin rules
-        source: '/blog/:path*',
-        destination: 'https://content.pointblank.club/blog/:path*',
-      },
-      {
-        // 5. System folders
+        // This rule handles the main assets/images that are NOT in the /blog folder
         source: '/content/:path*',
         destination: 'https://content.pointblank.club/content/:path*',
       },
       {
+        // This rule handles system scripts
         source: '/public/:path*',
         destination: 'https://content.pointblank.club/public/:path*',
+      },
+      {
+        // THE MASTER RULE
+        // This catches /blog, /blog/, /blog/post, /blog/ghost
+        // and sends it exactly as-is to your Ghost server.
+        source: '/blog/:path*',
+        destination: 'https://content.pointblank.club/blog/:path*',
+      },
+      {
+        // Fallback for the bare /blog home page
+        source: '/blog',
+        destination: 'https://content.pointblank.club/blog/',
       }
     ];
   },
