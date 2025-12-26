@@ -4,34 +4,24 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        // When a user goes to /blog, send them to the Ghost /blog route
         source: '/blog',
-        destination: 'https://content.pointblank.club',
+        destination: 'https://content.pointblank.club/blog',
       },
       {
+        // This covers posts, CSS, and Images because they now start with /blog
+        // Example: /blog/assets/css/style.css -> /blog/assets/css/style.css on Ghost
         source: '/blog/:path*',
-        destination: 'https://content.pointblank.club/:path*',
+        destination: 'https://content.pointblank.club/blog/:path*',
       },
-      // --- CRITICAL ASSET PATHS ---
+      // Safety net: In case Ghost still tries to serve images from the root /content
       {
-        // Fixes missing CSS/JS
-        source: '/assets/:path*',
-        destination: 'https://content.pointblank.club/assets/:path*',
-      },
-      {
-        // Fixes missing images
         source: '/content/:path*',
         destination: 'https://content.pointblank.club/content/:path*',
       },
       {
-        // Fixes Ghost system scripts
         source: '/public/:path*',
         destination: 'https://content.pointblank.club/public/:path*',
-      },
-      // --- GHOST ADMIN ---
-      {
-        // Access admin via localhost:3000/ghost
-        source: '/ghost/:path*',
-        destination: 'https://content.pointblank.club/ghost/:path*',
       }
     ];
   }
