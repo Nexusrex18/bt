@@ -1,30 +1,32 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // 1. Force Next.js to match Ghost's trailing slash preference
+  trailingSlash: true,
+
   async rewrites() {
     return [
       {
-        // When a user goes to /blog, send them to the Ghost /blog route
-        source: '/blog',
-        destination: 'https://content.pointblank.club/blog',
+        // 2. Handle the root blog path with a trailing slash
+        source: '/blog/',
+        destination: 'https://content.pointblank.club/blog/',
       },
       {
-        // This covers posts, CSS, and Images because they now start with /blog
-        // Example: /blog/assets/css/style.css -> /blog/assets/css/style.css on Ghost
-        source: '/blog/:path*',
-        destination: 'https://content.pointblank.club/blog/:path*',
+        // 3. Handle all sub-paths (posts, assets, etc.)
+        source: '/blog/:path*/',
+        destination: 'https://content.pointblank.club/blog/:path*/',
       },
-      // Safety net: In case Ghost still tries to serve images from the root /content
       {
+        // 4. Ghost Assets (Images) often stay at /content even with /blog prefix
         source: '/content/:path*',
         destination: 'https://content.pointblank.club/content/:path*',
       },
       {
-        source: '/public/:path*',
-        destination: 'https://content.pointblank.club/public/:path*',
+        source: '/assets/:path*',
+        destination: 'https://content.pointblank.club/assets/:path*',
       }
     ];
-  }
+  },
 };
 
 export default nextConfig;
