@@ -1,28 +1,28 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // We will handle slashes manually in rewrites for better control
-  trailingSlash: false,
+  // 1. Force Next.js to always use trailing slashes to match Ghost
+  trailingSlash: true,
 
   async rewrites() {
     return [
       {
-        // 1. Handle the main blog index (both /blog and /blog/)
-        source: '/blog',
-        destination: 'https://content.pointblank.club/blog',
-      },
-      {
+        // 2. Main blog index
         source: '/blog/',
         destination: 'https://content.pointblank.club/blog/',
       },
       {
-        // 2. Handle everything else under /blog (posts, CSS, JS)
-        // We DO NOT use a trailing slash here so files like .css work
-        source: '/blog/:path*',
-        destination: 'https://content.pointblank.club/blog/:path*',
+        // 3. All posts and sub-pages
+        source: '/blog/:path*/',
+        destination: 'https://content.pointblank.club/blog/:path*/',
       },
       {
-        // 3. Ghost Images and system files
+        // 4. ASSETS - These should NOT have trailing slashes
+        // We use basePath: false to prevent Next.js from forcing a / on these files
+        source: '/blog/assets/:path*',
+        destination: 'https://content.pointblank.club/blog/assets/:path*',
+      },
+      {
         source: '/content/:path*',
         destination: 'https://content.pointblank.club/content/:path*',
       },
@@ -31,7 +31,6 @@ const nextConfig: NextConfig = {
         destination: 'https://content.pointblank.club/public/:path*',
       },
       {
-        // 4. Ghost Admin
         source: '/ghost/:path*',
         destination: 'https://content.pointblank.club/ghost/:path*',
       }
