@@ -1,59 +1,68 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+  try {
+    const pathname = request.nextUrl.pathname;
 
-  if (pathname.startsWith("/blog")) {
-    // Strip '/blog' from the path
-    const ghostPath = pathname.replace(/^\/blog/, "") || "/";
-    const ghostUrl = `https://blog.pointblank.club${ghostPath}${request.nextUrl.search}`;
+    if (pathname.startsWith("/blog")) {
+      // Strip '/blog' from the path
+      let ghostPath = pathname.replace(/^\/blog/, "") || "/";
 
-    // Fetch from Ghost
-    const ghostResponse = await fetch(ghostUrl, {
-      method: request.method,
-      headers: {
-        ...request.headers,
-        host: "blog.pointblank.club", // Ensure Ghost sees the correct host
-      },
-      body: request.body,
-      redirect: "manual",
-    });
+      // Construct URL properly
+      const url = new URL(ghostPath, "https://blog.pointblank.club");
+      url.search = request.nextUrl.search;
+      const ghostUrl = url.toString();
 
-    // If error, fall back or 404
-    if (ghostResponse.status >= 400) {
-      return NextResponse.next();
-    }
+      // Fetch from Ghost
+      const ghostResponse = await fetch(ghostUrl, {
+        method: request.method,
+        headers: {
+          ...request.headers,
+          host: "blog.pointblank.club", // Override host if needed
+        },
+        body: request.body,
+        redirect: "manual",
+      });
 
-    const contentType = ghostResponse.headers.get("content-type") || "";
+      // If error or redirect, return the original response to preserve behavior
+      if (ghostResponse.status >= 300) {
+        return new NextResponse(ghostResponse.body, {
+          status: ghostResponse.status,
+          headers: ghostResponse.headers,
+        });
+      }
 
-    // For HTML, modify relative paths to prefix with /blog
-    if (contentType.includes("text/html")) {
-      let html = await ghostResponse.text();
+      const contentType = ghostResponse.headers.get("content-type") || "";
 
-      // Replace relative root paths in common attributes
-      html = html
-        .replace(/href="\//g, 'href="/blog/')
-        .replace(/src="\//g, 'src="/blog/')
-        .replace(/srcset="\//g, 'srcset="/blog/')
-        .replace(/action="\//g, 'action="/blog/')
-        .replace(/content="\//g, 'content="/blog/'); // For meta/og tags if needed
+      // For HTML, modify relative and absolute paths
+      if (contentType.includes("text/html")) {
+        const html = await ghostResponse.text();
 
-      // Return modified HTML
-      return new NextResponse(html, {
+        // Robust replacements for both relative and absolute URLs, single/double quotes
+        let modifiedHtml = html
+          .replace(/(href|src|srcset|action|content)=(["'])\/(?!blog\/)/g, '$1=$2/blog/')
+          .replace(/(href|src|srcset|action|content)=(["'])https:\/\/blog\.pointblank\.club\//g, '$1=$2/blog/');
+
+        return new NextResponse(modifiedHtml, {
+          status: ghostResponse.status,
+          headers: ghostResponse.headers,
+        });
+      }
+
+      // For non-HTML (CSS, JS, images, etc.), return as-is
+      return new NextResponse(ghostResponse.body, {
         status: ghostResponse.status,
         headers: ghostResponse.headers,
       });
     }
 
-    // For non-HTML (CSS, JS, images, etc.), return as-is
-    return new NextResponse(ghostResponse.body, {
-      status: ghostResponse.status,
-      headers: ghostResponse.headers,
-    });
+    // Continue for other paths
+    return NextResponse.next();
+  } catch (error) {
+    // Catch and display errors for debugging
+    console.error(error);
+    return new NextResponse(`Middleware Error: ${(error as Error).message}`, { status: 500 });
   }
-
-  // Continue for other paths
-  return NextResponse.next();
 }
 
 // Matcher to apply middleware only to /blog/*
