@@ -6,14 +6,14 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/blog")) {
     // Strip '/blog' from the path
     const ghostPath = pathname.replace(/^\/blog/, "") || "/";
-    const ghostUrl = `https://content.pointblank.club${ghostPath}${request.nextUrl.search}`;
+    const ghostUrl = `https://blog.pointblank.club${ghostPath}${request.nextUrl.search}`;
 
     // Fetch from Ghost
     const ghostResponse = await fetch(ghostUrl, {
       method: request.method,
       headers: {
         ...request.headers,
-        host: "content.pointblank.club", // Ensure Ghost sees the correct host
+        host: "blog.pointblank.club", // Ensure Ghost sees the correct host
       },
       body: request.body,
       redirect: "manual",
