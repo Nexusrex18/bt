@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
       {
         // Rewrite /blog (bare) to Ghost root
         source: '/blog',
-        destination: 'https://content.pointblank.club/',
+        destination: 'https://blog.pointblank.club/',
       },
       {
         // Rewrite /blog/* to Ghost root (strip /blog prefix)
@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
         // /blog/ghost → content.pointblank.club/ghost
         // /blog/assets/... → content.pointblank.club/assets/...
         source: '/blog/:path*',
-        destination: 'https://content.pointblank.club/:path*',
+        destination: 'https://blog.pointblank.club/:path*',
       },
     ];
   },
