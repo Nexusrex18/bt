@@ -1,71 +1,96 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const GHOST_ORIGIN = "https://blog.pointblank.club";
+
 export async function middleware(request: NextRequest) {
   try {
     const pathname = request.nextUrl.pathname;
 
     if (pathname.startsWith("/blog")) {
-      // Strip '/blog' from the path
-      let ghostPath = pathname.replace(/^\/blog/, "") || "/";
+      // Compute the path to request from Ghost (strip /blog, default to /)
+      const ghostPath = pathname.slice(6) || "/";
 
-      // Construct URL properly
-      const url = new URL(ghostPath, "https://blog.pointblank.club");
-      url.search = request.nextUrl.search;
-      const ghostUrl = url.toString();
+      // Build full Ghost URL with preserved query params
+      const ghostUrl = new URL(ghostPath + request.nextUrl.search, GHOST_ORIGIN).toString();
 
-      // Fetch from Ghost
+      // Fetch from Ghost, preserving method/headers/body
       const ghostResponse = await fetch(ghostUrl, {
         method: request.method,
         headers: {
-          ...request.headers,
-          host: "blog.pointblank.club", // Override host if needed
+          ...Object.fromEntries(request.headers.entries()),
+          host: new URL(GHOST_ORIGIN).host, // Ensure correct host header
         },
-        body: request.body,
-        redirect: "manual",
+        body: request.method === "GET" || request.method === "HEAD" ? null : request.body,
+        redirect: "manual", // Capture redirects if any
       });
 
-      // If error or redirect, return the original response to preserve behavior
-      if (ghostResponse.status >= 300) {
-        return new NextResponse(ghostResponse.body, {
+      // Clone headers for modification
+      const responseHeaders = new Headers(ghostResponse.headers);
+
+      // Handle redirects from Ghost (e.g., if Ghost 301s /about-us somewhere)
+      if (ghostResponse.status >= 300 && ghostResponse.status < 400) {
+        const location = responseHeaders.get("location");
+        if (location) {
+          const newLocation = location.replace(GHOST_ORIGIN, "/blog");
+          responseHeaders.set("location", newLocation);
+        }
+        return new NextResponse(null, {
           status: ghostResponse.status,
-          headers: ghostResponse.headers,
+          headers: responseHeaders,
         });
       }
 
-      const contentType = ghostResponse.headers.get("content-type") || "";
+      const contentType = responseHeaders.get("content-type") || "";
 
-      // For HTML, modify relative and absolute paths
       if (contentType.includes("text/html")) {
-        const html = await ghostResponse.text();
+        let html = await ghostResponse.text();
 
-        // Robust replacements for both relative and absolute URLs, single/double quotes
-        let modifiedHtml = html
-          .replace(/(href|src|srcset|action|content)=(["'])\/(?!blog\/)/g, '$1=$2/blog/')
-          .replace(/(href|src|srcset|action|content)=(["'])https:\/\/blog\.pointblank\.club\//g, '$1=$2/blog/');
+        // More comprehensive replacements using regex
+        // Handles href, src, srcset, action, content, data-src, etc.
+        // For both quoted ("/path or ' /path) and covers root-relative
+        html = html.replace(
+          /(href|src|srcset|action|content|data-src|data-srcset)=(["'])(\/(?!blog\/)|https:\/\/blog\.pointblank\.club(\/)?)/g,
+          `$1=$2/blog/`
+        );
 
-        return new NextResponse(modifiedHtml, {
+        // Also handle unquoted (rare, but possible in srcset)
+        html = html.replace(
+          /(href|src|srcset|action|content|data-src|data-srcset)=\/(?!blog\/)/g,
+          `$1=/blog/`
+        );
+
+        // Optional: Replace canonical and og:url if present
+        html = html.replace(
+          /(<meta property="og:url" content=")https:\/\/blog\.pointblank\.club\//g,
+          "$1https://btabc.vercel.app/blog/"
+        );
+        html = html.replace(
+          /(<link rel="canonical" href=")https:\/\/blog\.pointblank\.club\//g,
+          "$1https://btabc.vercel.app/blog/"
+        );
+
+        return new NextResponse(html, {
           status: ghostResponse.status,
-          headers: ghostResponse.headers,
+          headers: responseHeaders,
         });
       }
 
-      // For non-HTML (CSS, JS, images, etc.), return as-is
+      // For non-HTML (assets, JSON, etc.) pass through directly
       return new NextResponse(ghostResponse.body, {
         status: ghostResponse.status,
-        headers: ghostResponse.headers,
+        headers: responseHeaders,
       });
     }
 
-    // Continue for other paths
     return NextResponse.next();
   } catch (error) {
-    // Catch and display errors for debugging
-    console.error(error);
-    return new NextResponse(`Middleware Error: ${(error as Error).message}`, { status: 500 });
+    console.error("Middleware error:", error);
+    return new NextResponse(`Internal Server Error: ${(error as Error).message}`, {
+      status: 500,
+    });
   }
 }
 
-// Matcher to apply middleware only to /blog/*
 export const config = {
   matcher: "/blog/:path*",
 };
