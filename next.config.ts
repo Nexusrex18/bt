@@ -4,11 +4,15 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: "/blog/:path*",
-        destination: "https://blog.pointblank.club/:path*",
+        source: '/blog',
+        destination: 'https://content.pointblank.club'
       },
-    ];
-  },
+      {
+        source: '/blog/:path*',
+        destination: 'https://content.pointblank.club/:path*'
+      }
+    ]
+  }
 };
 
 export default nextConfig;
