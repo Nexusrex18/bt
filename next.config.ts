@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
         source: '/hustle',
         destination: 'https://hustle.pointblank.club'
       },
+      {
+        source: '/hustle/:path*',
+        destination: 'https://hustle.pointblank.club/:path*'
+      }
     ]
   }
 };
