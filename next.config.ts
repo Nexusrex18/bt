@@ -1,18 +1,23 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
+  async headers() {
     return [
       {
-        source: '/hustle',
-        destination: 'https://hustle.pointblank.club'
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'ALLOW-FROM https://btabc.netlify.app', // or simply remove the DENY header
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://btabc.netlify.app",
+          },
+        ],
       },
-      {
-        source: '/hustle/:path*',
-        destination: 'https://hustle.pointblank.club/:path*'
-      }
     ]
-  }
+  },
 };
 
 export default nextConfig;
