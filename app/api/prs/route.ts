@@ -58,9 +58,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       owner: 'apache',
       repo: 'dubbo-go',
-      author: author,
+      author,
       total_count: data.total_count,
-      prs: prs
+      prs
     });
   } catch (error) {
     console.error('Error fetching PRs:', error);

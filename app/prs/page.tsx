@@ -108,8 +108,7 @@ export default function PRSearch() {
                   </span>
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Created: {new Date(pr.created_at).toLocaleDateString()} | 
-                  Updated: {new Date(pr.updated_at).toLocaleDateString()}
+                  Created: {new Date(pr.created_at).toLocaleDateString()} | Updated: {new Date(pr.updated_at).toLocaleDateString()}
                 </div>
               </div>
             ))}
